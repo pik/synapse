@@ -136,46 +136,7 @@ def setup_logging(log_config=None, log_file=None, verbosity=None):
         " - %(message)s"
     )
     if log_config is None:
-
-        level = logging.INFO
-        level_for_storage = logging.INFO
-        if verbosity:
-            level = logging.DEBUG
-            if verbosity > 1:
-                level_for_storage = logging.DEBUG
-
-        # FIXME: we need a logging.WARN for a -q quiet option
-        logger = logging.getLogger('')
-        logger.setLevel(level)
-
-        logging.getLogger('synapse.storage').setLevel(level_for_storage)
-
-        formatter = logging.Formatter(log_format)
-        if log_file:
-            # TODO: Customisable file size / backup count
-            handler = logging.handlers.RotatingFileHandler(
-                log_file, maxBytes=(1000 * 1000 * 100), backupCount=3
-            )
-
-            def sighup(signum, stack):
-                logger.info("Closing log file due to SIGHUP")
-                handler.doRollover()
-                logger.info("Opened new log file due to SIGHUP")
-
-            # TODO(paul): obviously this is a terrible mechanism for
-            #   stealing SIGHUP, because it means no other part of synapse
-            #   can use it instead. If we want to catch SIGHUP anywhere
-            #   else as well, I'd suggest we find a nicer way to broadcast
-            #   it around.
-            if getattr(signal, "SIGHUP"):
-                signal.signal(signal.SIGHUP, sighup)
-        else:
-            handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-
-        handler.addFilter(LoggingContextFilter(request=""))
-
-        logger.addHandler(handler)
+        logging.config.dictConfig(yaml.load(DEFAULT_LOG_CONFIG.template))
     else:
         with open(log_config, 'r') as f:
             logging.config.dictConfig(yaml.load(f))
